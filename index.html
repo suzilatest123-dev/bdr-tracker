@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f2744">
+<title>FIND-ME BDR TRACKER</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  font-family:Arial,Helvetica,sans-serif;
+  background:#0f2744;
+  min-height:100vh;
+  display:table;
+  width:100%;
+}
+.mid{
+  display:table-cell;
+  vertical-align:middle;
+  padding:24px;
+}
+.card{
+  background:#fff;
+  border-radius:20px;
+  padding:32px 24px;
+  max-width:400px;
+  margin:0 auto;
+  text-align:center;
+  box-shadow:0 8px 40px rgba(0,0,0,.3);
+}
+.logo{font-size:3rem;margin-bottom:12px}
+h1{font-size:1.3rem;font-weight:800;color:#0f2744;margin-bottom:6px}
+.sub{font-size:.82rem;color:#64748b;margin-bottom:28px;line-height:1.6}
+.divider{height:1px;background:#e2e8f0;margin:22px 0}
+
+/* APP BUTTONS */
+.app-btn{
+  display:block;
+  width:100%;
+  padding:18px 16px;
+  border-radius:14px;
+  text-decoration:none;
+  margin-bottom:12px;
+  text-align:left;
+}
+.app-btn:last-child{margin-bottom:0}
+.ab-mobile{background:#f0fdf4;border:2px solid #bbf7d0}
+.ab-desktop{background:#eff6ff;border:2px solid #bfdbfe}
+
+.ab-row{display:table;width:100%}
+.ab-ico{display:table-cell;vertical-align:middle;width:52px}
+.ab-ico-c{
+  width:44px;height:44px;border-radius:12px;
+  display:table;text-align:center;font-size:1.4rem;
+}
+.ab-ico-c-inner{display:table-cell;vertical-align:middle}
+.ico-m{background:#d1fae5}
+.ico-d{background:#dbeafe}
+.ab-txt{display:table-cell;vertical-align:middle;padding-left:12px}
+.ab-title{font-size:.95rem;font-weight:800;color:#0f2744;margin-bottom:2px}
+.ab-desc{font-size:.73rem;color:#64748b;line-height:1.4}
+.ab-arr{display:table-cell;vertical-align:middle;width:24px;text-align:right;font-size:1rem;color:#94a3b8}
+
+.version{margin-top:20px;font-size:.72rem;color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="mid">
+<div class="card">
+
+  <div class="logo">&#128205;</div>
+  <h1>FIND-ME BDR TRACKER</h1>
+  <p class="sub">Sistem Pemantauan Kehadiran &amp; Status Kakitangan<br>Pilih versi mengikut peranti anda</p>
+
+  <!-- MOBILE -->
+  <a href="mobile.html" class="app-btn ab-mobile">
+    <div class="ab-row">
+      <div class="ab-ico">
+        <div class="ab-ico-c ico-m">
+          <div class="ab-ico-c-inner">&#128241;</div>
+        </div>
+      </div>
+      <div class="ab-txt">
+        <div class="ab-title">Versi Mobile</div>
+        <div class="ab-desc">Untuk Phone &amp; Tablet<br>Punch Masuk / Keluar / Kemaskini Status</div>
+      </div>
+      <div class="ab-arr">&#8250;</div>
+    </div>
+  </a>
+
+  <!-- DESKTOP -->
+  <a href="desktop.html" class="app-btn ab-desktop">
+    <div class="ab-row">
+      <div class="ab-ico">
+        <div class="ab-ico-c ico-d">
+          <div class="ab-ico-c-inner">&#128187;</div>
+        </div>
+      </div>
+      <div class="ab-txt">
+        <div class="ab-title">Versi Desktop / Admin</div>
+        <div class="ab-desc">Untuk Komputer, Laptop &amp; Smart TV<br>Dashboard, Analitik, Laporan &amp; PDF</div>
+      </div>
+      <div class="ab-arr">&#8250;</div>
+    </div>
+  </a>
+
+  <div class="divider"></div>
+  <p class="version">FIND-ME BDR TRACKER &copy; Sistem Pemantauan Kakitangan</p>
+
+</div>
+</div>
+</body>
+</html>

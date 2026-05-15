@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BDR Tracker</title>
+<style>
+body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#f0f4f8;color:#1a2a3a;font-size:15px}
+*{box-sizing:border-box}
+h1,h2,h3,p,div,span,label,input,select,button,a{font-family:Arial,Helvetica,sans-serif}
+
+/* PAGES */
+.page{display:none;min-height:100vh}
+.page.show{display:block}
+
+/* SETUP PAGE */
+#pg-setup{background:#0f2744;padding:20px}
+.setup-inner{background:#fff;border-radius:16px;padding:24px 20px;max-width:420px;margin:0 auto}
+.setup-logo{text-align:center;font-size:2rem;margin-bottom:8px}
+.setup-h{text-align:center;font-size:1.1rem;font-weight:700;color:#0f2744;margin-bottom:3px}
+.setup-s{text-align:center;font-size:.78rem;color:#64748b;margin-bottom:20px}
+.hint{background:#dbeafe;border-radius:8px;padding:10px 12px;font-size:.76rem;color:#1e40af;margin-bottom:16px;line-height:1.6}
+.hint b{display:block;margin-bottom:3px}
+.fl{margin-bottom:12px}
+.fl label{display:block;font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#475569;margin-bottom:4px}
+.fl input,.fl select{display:block;width:100%;padding:12px 13px;border:2px solid #e2e8f0;border-radius:9px;font-size:15px;color:#1a2a3a;background:#f8fafc;outline:none;-webkit-appearance:none;appearance:none}
+.fl select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2364748b' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
+.errbox{display:none;margin-top:10px;padding:10px;background:#fee2e2;color:#991b1b;border-radius:8px;font-size:.8rem;font-weight:700}
+.div-line{height:1px;background:#e2e8f0;margin:18px 0}
+.qt-lbl{text-align:center;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:10px}
+
+/* MAIN BUTTON — table-based for maximum compatibility */
+table.btn-tbl{width:100%;border-collapse:collapse}
+table.btn-tbl td{padding:0}
+.mbtn{display:block;width:100%;padding:14px 10px;border:none;border-radius:10px;font-size:.92rem;font-weight:700;text-align:center;cursor:pointer;text-decoration:none;color:#fff;background:#0f2744;margin-bottom:8px}
+.mbtn:active{opacity:.8}
+.mbtn-g{background:#059669}
+.mbtn-y{background:#d97706}
+.mbtn-p{background:#6d28d9}
+.mbtn-r{background:#dc2626}
+.mbtn-b{background:#1d4ed8}
+.mbtn-w{background:#f1f5f9;color:#334155}
+
+/* QUICK BUTTONS */
+.qrow{display:table;width:100%;border-collapse:separate;border-spacing:6px}
+.qcell{display:table-cell;width:50%}
+.qbtn{display:block;width:100%;padding:9px 6px;border:2px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:.73rem;font-weight:700;text-align:center;cursor:pointer;line-height:1.4;color:#334155}
+.qbtn:active{background:#dbeafe;border-color:#1d6ef5}
+
+/* APP PAGE */
+#pg-app{background:#f0f4f8}
+
+/* HEADER */
+.hdr{background:#0f2744;padding:10px 16px}
+.hdr-t{color:#fff;font-size:.95rem;font-weight:700;margin:0}
+.hdr-s{color:rgba(255,255,255,.55);font-size:.65rem;margin:2px 0 0}
+.hdr-row{display:table;width:100%}
+.hdr-l{display:table-cell;vertical-align:middle}
+.hdr-r{display:table-cell;vertical-align:middle;text-align:right}
+.clk{color:rgba(255,255,255,.7);font-size:.7rem;font-weight:600;background:rgba(255,255,255,.1);border-radius:6px;padding:4px 9px;display:inline-block}
+
+/* BODY */
+.body-pad{padding:14px;max-width:480px;margin:0 auto}
+
+/* CARDS */
+.card{background:#fff;border-radius:13px;padding:16px;margin-bottom:13px;box-shadow:0 1px 6px rgba(0,0,0,.07)}
+.card-ttl{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:12px}
+
+/* USER ROW */
+.u-row{display:table;width:100%;margin-bottom:13px}
+.u-av{display:table-cell;width:46px;vertical-align:middle}
+.u-av-c{width:40px;height:40px;border-radius:50%;background:#0f2744;text-align:center;line-height:40px;font-size:1.2rem;color:#fff}
+.u-inf{display:table-cell;vertical-align:middle;padding-left:10px}
+.u-nm{font-size:.95rem;font-weight:700;color:#0f2744}
+.u-dp{font-size:.7rem;color:#64748b;margin-top:2px}
+
+/* STATUS BOX */
+.sts-bx{background:#f8fafc;border-radius:10px;padding:13px;margin-bottom:11px}
+.sts-row{display:table;width:100%}
+.sts-l{display:table-cell;vertical-align:middle}
+.sts-r{display:table-cell;vertical-align:middle;text-align:right}
+.sts-lbl{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#94a3b8;margin-bottom:4px}
+.sts-val{font-size:1.2rem;font-weight:800;color:#0f2744}
+.bdg{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.73rem;font-weight:800}
+.bdg-a{background:#d1fae5;color:#065f46}
+.bdg-s{background:#f1f5f9;color:#64748b}
+.bdg-n{background:#fef3c7;color:#92400e}
+
+/* TIME ROW */
+.tm-row{display:table;width:100%;border-collapse:separate;border-spacing:8px}
+.tm-c{display:table-cell;background:#f8fafc;border-radius:9px;padding:9px 11px;width:50%}
+.tm-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;color:#94a3b8;margin-bottom:2px}
+.tm-val{font-size:.88rem;font-weight:700;color:#0f2744}
+
+/* PICKER */
+.opts-wrap{margin-bottom:11px}
+.opt-row{display:table;width:100%;border-collapse:separate;border-spacing:6px;margin-bottom:6px}
+.opt-c{display:table-cell;width:50%}
+.opt-btn{display:block;width:100%;padding:11px 8px;border:2px solid #e2e8f0;border-radius:9px;background:#f8fafc;font-size:.82rem;font-weight:700;text-align:center;cursor:pointer;color:#334155}
+.opt-btn.on{border-color:#1d4ed8;background:#dbeafe;color:#1e40af}
+.opt-btn:active{opacity:.75}
+.xtra{display:none;margin-bottom:11px}
+.xtra.show{display:block}
+.xtra label{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#475569;margin-bottom:4px}
+.xtra input{display:block;width:100%;padding:11px 12px;border:2px solid #e2e8f0;border-radius:9px;font-size:15px;color:#1a2a3a;background:#f8fafc;outline:none}
+
+/* REKOD ITEMS */
+.rek-item{background:#f8fafc;border-radius:9px;padding:10px 12px;margin-bottom:7px;border-left:3px solid #1d4ed8}
+.rek-item:last-child{margin-bottom:0}
+.rek-row{display:table;width:100%}
+.rek-l{display:table-cell;vertical-align:middle}
+.rek-r{display:table-cell;vertical-align:middle;text-align:right;width:90px}
+.rek-s{font-size:.86rem;font-weight:700;color:#0f2744}
+.rek-t{font-size:.7rem;color:#64748b}
+.rek-m{font-size:.68rem;color:#94a3b8;margin-top:2px}
+.empty-msg{text-align:center;padding:18px;color:#94a3b8;font-size:.82rem}
+
+/* TOAST */
+#toast-box{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);-webkit-transform:translateX(-50%);z-index:9999;width:90%;max-width:340px;pointer-events:none}
+.toast{background:#0f2744;color:#fff;border-radius:10px;padding:11px 14px;font-size:.84rem;font-weight:700;margin-bottom:7px;box-shadow:0 4px 16px rgba(0,0,0,.2);pointer-events:all;display:table;width:100%}
+.t-ico{display:table-cell;vertical-align:middle;width:28px;font-size:1rem}
+.t-msg{display:table-cell;vertical-align:middle}
+.tok{background:#059669}.twn{background:#d97706}.terr{background:#dc2626}.tinf{background:#1d4ed8}
+
+/* LOADING */
+#ld-box{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.9);z-index:9998;text-align:center}
+#ld-box.on{display:block}
+#ld-inner{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);-webkit-transform:translate(-50%,-50%)}
+.spin{width:36px;height:36px;border:4px solid #dbeafe;border-top-color:#1d4ed8;border-radius:50%;margin:0 auto 10px;-webkit-animation:spin .7s linear infinite;animation:spin .7s linear infinite}
+@-webkit-keyframes spin{to{-webkit-transform:rotate(360deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+#ld-txt{font-size:.86rem;font-weight:700;color:#0f2744}
+</style>
+</head>
+<body>
+
+<div id="toast-box"></div>
+<div id="ld-box"><div id="ld-inner"><div class="spin"></div><div id="ld-txt">Memproses...</div></div></div>
+
+<!-- ========== SETUP PAGE ========== -->
+<div id="pg-setup" class="page show">
+<div style="min-height:100vh;display:table;width:100%">
+<div style="display:table-cell;vertical-align:middle;padding:20px">
+<div class="setup-inner">
+
+  <div class="setup-logo">&#128205;</div>
+  <div class="setup-h">BDR TRACKER — Mobile</div>
+  <div class="setup-s">Tetapan awal (sekali sahaja per phone)</div>
+
+  <div class="hint">
+    <b>&#9881; URL Google Apps Script diperlukan</b>
+    Dapatkan dari PANDUAN-SETUP.html Langkah 4.<br>
+    Contoh: https://script.google.com/macros/s/.../exec
+  </div>
+
+  <div class="fl">
+    <label>URL Google Apps Script</label>
+    <input type="text" id="inUrl" placeholder="https://script.google.com/macros/s/..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false">
+  </div>
+  <div class="fl">
+    <label>Nama Penuh</label>
+    <input type="text" id="inNama" placeholder="Nama penuh anda" autocomplete="name">
+  </div>
+  <div class="fl">
+    <label>No. IC</label>
+    <input type="text" id="inIC" placeholder="900101011234" inputmode="numeric" autocomplete="off">
+  </div>
+  <div class="fl">
+    <label>Jawatan</label>
+    <input type="text" id="inJwt" placeholder="Jawatan anda" autocomplete="off">
+  </div>
+  <div class="fl">
+    <label>Bahagian / Unit</label>
+    <select id="inBhg">
+      <option value="">-- Pilih Bahagian --</option>
+      <option value="Bahagian Rancangan Pembangunan (BRP)">Bahagian Rancangan Pembangunan (BRP)</option>
+      <option value="Bahagian Perancangan Korporat (BPK)">Bahagian Perancangan Korporat (BPK)</option>
+      <option value="Bahagian Pengawalan Perancangan (BPP)">Bahagian Pengawalan Perancangan (BPP)</option>
+      <option value="Bahagian Pentadbiran dan Kewangan (BP&K)">Bahagian Pentadbiran dan Kewangan (BP&amp;K)</option>
+    </select>
+  </div>
+
+  <div id="errbox" class="errbox"></div>
+
+  <!-- BUTANG SIMPAN — onclick terus dalam HTML, paling compatible -->
+  <input type="button" value="Simpan &amp; Sambung" onclick="doSimpan()" style="display:block;width:100%;padding:14px;background:#0f2744;color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;margin-top:8px">
+
+  <div class="div-line"></div>
+  <div class="qt-lbl">&#9889; Ujian Pantas</div>
+
+  <div class="qrow">
+    <div class="qcell"><div class="qbtn" onclick="quickFill(0)">&#128100; Ahmad<br><small>BRP</small></div></div>
+    <div class="qcell"><div class="qbtn" onclick="quickFill(1)">&#128100; Siti<br><small>BPK</small></div></div>
+  </div>
+  <div class="qrow" style="margin-top:6px">
+    <div class="qcell"><div class="qbtn" onclick="quickFill(2)">&#128100; Razif<br><small>BPP</small></div></div>
+    <div class="qcell"><div class="qbtn" onclick="quickFill(3)">&#128100; Nurul<br><small>BP&amp;K</small></div></div>
+  </div>
+
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== APP PAGE ========== -->
+<div id="pg-app" class="page">
+
+  <div class="hdr">
+    <div class="hdr-row">
+      <div class="hdr-l">
+        <p class="hdr-t">&#128205; BDR TRACKER</p>
+        <p class="hdr-s">Sistem Kehadiran &amp; Status</p>
+      </div>
+      <div class="hdr-r">
+        <span class="clk" id="clkEl">--</span>
+      </div>
+    </div>
+    <div style="margin-top:8px;text-align:right">
+      <input type="button" value="&#9881; Tetapan" onclick="showSetup()" style="background:rgba(255,255,255,.15);color:#fff;border:none;border-radius:7px;padding:6px 13px;font-size:.72rem;font-weight:700;cursor:pointer">
+    </div>
+  </div>
+
+  <div class="body-pad">
+
+    <!-- USER STATUS -->
+    <div class="card">
+      <div class="card-ttl">STATUS SEMASA</div>
+      <div class="u-row">
+        <div class="u-av"><div class="u-av-c">&#128100;</div></div>
+        <div class="u-inf">
+          <div class="u-nm" id="uNm">--</div>
+          <div class="u-dp" id="uDp">--</div>
+        </div>
+      </div>
+      <div class="sts-bx">
+        <div class="sts-row">
+          <div class="sts-l">
+            <div class="sts-lbl">Status</div>
+            <div class="sts-val" id="curSts">Belum Check In</div>
+          </div>
+          <div class="sts-r">
+            <span class="bdg bdg-n" id="curBdg">TIADA</span>
+          </div>
+        </div>
+      </div>
+      <div class="tm-row">
+        <div class="tm-c">
+          <div class="tm-lbl">Punch Masuk</div>
+          <div class="tm-val" id="tMsk">--</div>
+        </div>
+        <div class="tm-c">
+          <div class="tm-lbl">Punch Keluar</div>
+          <div class="tm-val" id="tKlr">--</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIONS -->
+    <div class="card">
+      <div class="card-ttl">TINDAKAN</div>
+      <input type="button" class="mbtn mbtn-g" value="&#9989; Punch Masuk" onclick="openPicker('masuk')">
+      <input type="button" class="mbtn mbtn-y" value="&#128682; Punch Keluar" onclick="doPunchKeluar()">
+      <input type="button" class="mbtn mbtn-p" value="&#128260; Kemaskini Status" onclick="openPicker('status')">
+      <input type="button" class="mbtn mbtn-b" value="&#128260; Refresh" onclick="loadToday()" style="margin-top:4px;font-size:.8rem;padding:10px;background:#e0e7ff;color:#3730a3">
+    </div>
+
+    <!-- PICKER (hidden until open) -->
+    <div class="card" id="pickerCard" style="display:none">
+      <div class="card-ttl" id="pickerTtl">PILIH STATUS</div>
+
+      <div class="opts-wrap">
+        <div class="opt-row">
+          <div class="opt-c"><div class="opt-btn" id="ob0" onclick="selSts('BDR')">&#127968; BDR</div></div>
+          <div class="opt-c"><div class="opt-btn" id="ob1" onclick="selSts('Pejabat')">&#127970; Pejabat</div></div>
+        </div>
+        <div class="opt-row">
+          <div class="opt-c"><div class="opt-btn" id="ob2" onclick="selSts('Mesyuarat')">&#128197; Mesyuarat</div></div>
+          <div class="opt-c"><div class="opt-btn" id="ob3" onclick="selSts('Lawatan Tapak')">&#128301; Lwt.Tapak</div></div>
+        </div>
+        <div class="opt-row">
+          <div class="opt-c"><div class="opt-btn" id="ob4" onclick="selSts('Kursus')">&#128218; Kursus</div></div>
+          <div class="opt-c"><div class="opt-btn" id="ob5" onclick="selSts('Cuti')">&#127796; Cuti</div></div>
+        </div>
+        <div class="opt-row">
+          <div class="opt-c"><div class="opt-btn" id="ob6" onclick="selSts('Lain-Lain')">&#128204; Lain-Lain</div></div>
+          <div class="opt-c"></div>
+        </div>
+      </div>
+
+      <div class="xtra" id="xtraDiv">
+        <label>Maklumat Tambahan</label>
+        <input type="text" id="xtraInp" placeholder="Nama mesyuarat / lokasi / tajuk kursus...">
+      </div>
+
+      <input type="button" class="mbtn" value="&#9989; Sahkan" onclick="doConfirm()">
+      <input type="button" class="mbtn mbtn-w" value="Batal" onclick="closePicker()" style="margin-top:6px">
+    </div>
+
+    <!-- REKOD HARI INI -->
+    <div class="card">
+      <div class="card-ttl">&#128203; REKOD HARI INI</div>
+      <div id="recList"><div class="empty-msg">Tiada rekod hari ini.</div></div>
+    </div>
+
+  </div><!-- /body-pad -->
+</div><!-- /pg-app -->
+
+<script>
+/* =========================================================
+   DATA
+========================================================= */
+var API_URL = '';
+var CUR_USER = null;
+var TODAY_RECS = [];
+var PEND_ACT = '';
+var SEL_STS = '';
+var NEED_XTRA = ['Mesyuarat','Lawatan Tapak','Kursus','Lain-Lain'];
+var OB_IDS = ['ob0','ob1','ob2','ob3','ob4','ob5','ob6'];
+var STS_KEYS = ['BDR','Pejabat','Mesyuarat','Lawatan Tapak','Kursus','Cuti','Lain-Lain'];
+
+var QUSERS = [
+  {nama:'Ahmad bin Ali',ic:'801010011234',jawatan:'Pegawai Perancang',bahagian:'Bahagian Rancangan Pembangunan (BRP)'},
+  {nama:'Siti binti Hassan',ic:'850202025678',jawatan:'Pembantu Tadbir',bahagian:'Bahagian Perancangan Korporat (BPK)'},
+  {nama:'Razif bin Omar',ic:'900303039012',jawatan:'Jurutera',bahagian:'Bahagian Pengawalan Perancangan (BPP)'},
+  {nama:'Nurul binti Ismail',ic:'920404043456',jawatan:'Penolong Akauntan',bahagian:'Bahagian Pentadbiran dan Kewangan (BP&K)'}
+];
+
+/* load saved */
+try{API_URL=localStorage.getItem('bdr_url')||'';}catch(e){}
+try{var _s=localStorage.getItem('bdr_user');if(_s)CUR_USER=JSON.parse(_s);}catch(e){}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+function gi(id){return document.getElementById(id);}
+function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function p2(n){return n<10?'0'+n:''+n;}
+function nowTime(){var d=new Date();return p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds());}
+function nowDate(){var d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();}
+
+/* =========================================================
+   CLOCK
+========================================================= */
+function tickClk(){
+  var el=gi('clkEl');if(!el)return;
+  var d=new Date();
+  var days=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
+  el.innerHTML=days[d.getDay()]+' '+p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds());
+}
+setInterval(tickClk,1000);tickClk();
+
+/* =========================================================
+   TOAST
+========================================================= */
+function toast(msg,type,dur){
+  var cls={success:'tok',warning:'twn',error:'terr',info:'tinf'};
+  var ico={success:'&#9989;',warning:'&#9888;&#65039;',error:'&#10060;',info:'&#8505;&#65039;'};
+  var t=document.createElement('div');
+  t.className='toast '+(cls[type]||'tinf');
+  t.innerHTML='<div class="t-ico">'+(ico[type]||'&#8505;')+'</div><div class="t-msg">'+esc(msg)+'</div>';
+  gi('toast-box').appendChild(t);
+  setTimeout(function(){
+    if(t.parentNode)t.parentNode.removeChild(t);
+  },dur||3500);
+}
+
+/* =========================================================
+   LOADING
+========================================================= */
+function showLd(msg){gi('ld-txt').innerHTML=msg||'Memproses...';gi('ld-box').className='on';}
+function hideLd(){gi('ld-box').className='';}
+
+/* =========================================================
+   PAGE SWITCH
+========================================================= */
+function showSetup(){
+  gi('pg-app').className='page';
+  gi('pg-setup').className='page show';
+  if(API_URL)gi('inUrl').value=API_URL;
+  if(CUR_USER){
+    gi('inNama').value=CUR_USER.nama||'';
+    gi('inIC').value=CUR_USER.ic||'';
+    gi('inJwt').value=CUR_USER.jawatan||'';
+    gi('inBhg').value=CUR_USER.bahagian||'';
+  }
+}
+
+function showApp(){
+  gi('pg-setup').className='page';
+  gi('pg-app').className='page show';
+}
+
+/* =========================================================
+   QUICK FILL
+========================================================= */
+function quickFill(i){
+  var u=QUSERS[i];if(!u)return;
+  gi('inNama').value=u.nama;
+  gi('inIC').value=u.ic;
+  gi('inJwt').value=u.jawatan;
+  gi('inBhg').value=u.bahagian;
+  doSimpan();
+}
+
+/* =========================================================
+   SETUP SAVE
+========================================================= */
+function doSimpan(){
+  var url=gi('inUrl').value.replace(/\s/g,'');
+  var nama=gi('inNama').value.replace(/^\s+|\s+$/g,'');
+  var ic=gi('inIC').value.replace(/^\s+|\s+$/g,'');
+  var jwt=gi('inJwt').value.replace(/^\s+|\s+$/g,'');
+  var bhg=gi('inBhg').value;
+  var err=gi('errbox');
+
+  if(!url||!nama||!ic||!jwt||!bhg){
+    err.innerHTML='Sila lengkapkan semua maklumat.';
+    err.style.display='block';
+    return;
+  }
+  if(url.indexOf('script.google.com')<0){
+    err.innerHTML='URL tidak sah. Mesti bermula dengan https://script.google.com/...';
+    err.style.display='block';
+    return;
+  }
+  err.style.display='none';
+  API_URL=url;
+
+  showLd('Menguji sambungan...');
+  apiCall({action:'ping'},
+    function(res){
+      hideLd();
+      if(res&&res.ok){
+        try{localStorage.setItem('bdr_url',url);}catch(e){}
+        CUR_USER={nama:nama,ic:ic,jawatan:jwt,bahagian:bhg};
+        try{localStorage.setItem('bdr_user',JSON.stringify(CUR_USER));}catch(e){}
+        enterApp();
+      }else{
+        toast('Sambungan gagal. Semak URL.','error',5000);
+      }
+    },
+    function(e){
+      hideLd();
+      toast('Gagal sambung: '+e,'error',6000);
+    }
+  );
+}
+
+/* =========================================================
+   API CALL
+========================================================= */
+function apiCall(params,onOk,onErr){
+  if(!API_URL){if(onErr)onErr('URL belum ditetapkan');return;}
+  var qs=[];
+  for(var k in params){
+    if(params.hasOwnProperty(k)){
+      qs.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]==null?'':params[k]));
+    }
+  }
+  var url=API_URL+'?'+qs.join('&');
+  var xhr=new XMLHttpRequest();
+  xhr.open('GET',url,true);
+  xhr.timeout=15000;
+  xhr.onreadystatechange=function(){
+    if(xhr.readyState!==4)return;
+    if(xhr.status===200){
+      try{
+        var d=JSON.parse(xhr.responseText);
+        if(onOk)onOk(d);
+      }catch(e){if(onErr)onErr('Parse error');}
+    }else{
+      if(onErr)onErr('HTTP '+xhr.status);
+    }
+  };
+  xhr.ontimeout=function(){if(onErr)onErr('Masa tamat');};
+  xhr.onerror=function(){if(onErr)onErr('Tiada sambungan');};
+  try{xhr.send();}catch(e){if(onErr)onErr(e.message);}
+}
+
+/* =========================================================
+   GPS
+========================================================= */
+function getGPS(cb){
+  if(!navigator.geolocation){cb('-',null);return;}
+  var done=false;
+  var t=setTimeout(function(){if(!done){done=true;cb('timeout',null);}},8000);
+  navigator.geolocation.getCurrentPosition(
+    function(p){if(done)return;done=true;clearTimeout(t);
+      var la=p.coords.latitude.toFixed(6),lo=p.coords.longitude.toFixed(6);
+      cb(la+','+lo,'https://maps.google.com/?q='+la+','+lo);},
+    function(e){if(done)return;done=true;clearTimeout(t);cb('GPS gagal',null);},
+    {enableHighAccuracy:true,timeout:7000,maximumAge:30000}
+  );
+}
+
+/* =========================================================
+   ENTER APP
+========================================================= */
+function enterApp(){
+  if(!CUR_USER)return;
+  showApp();
+  gi('uNm').innerHTML=esc(CUR_USER.nama);
+  gi('uDp').innerHTML=esc(CUR_USER.jawatan)+' &bull; '+esc((CUR_USER.bahagian||'').replace(/\(.*?\)/g,'').replace(/^\s+|\s+$/g,''));
+  loadToday();
+  toast('Selamat datang, '+CUR_USER.nama+'!','success');
+}
+
+/* =========================================================
+   LOAD TODAY
+========================================================= */
+function loadToday(){
+  showLd('Memuat rekod hari ini...');
+  apiCall({action:'getAll'},
+    function(res){
+      hideLd();
+      if(!res||!res.ok){toast('Gagal muat data.','error');return;}
+      var today=nowDate();
+      TODAY_RECS=[];
+      var recs=res.records||[];
+      for(var i=0;i<recs.length;i++){
+        if(recs[i].ic===CUR_USER.ic&&recs[i].tarikh===today)TODAY_RECS.push(recs[i]);
+      }
+      renderStatus();
+      renderRecs();
+    },
+    function(e){hideLd();toast('Gagal: '+e,'error');}
+  );
+}
+
+/* =========================================================
+   RENDER STATUS
+========================================================= */
+function renderStatus(){
+  var act=null;
+  for(var i=TODAY_RECS.length-1;i>=0;i--){
+    if(TODAY_RECS[i].masuk&&TODAY_RECS[i].masuk!=='-'){act=TODAY_RECS[i];break;}
+  }
+  if(!act){
+    gi('curSts').innerHTML='Belum Check In';
+    gi('curBdg').innerHTML='TIADA';
+    gi('curBdg').className='bdg bdg-n';
+    gi('tMsk').innerHTML='--';
+    gi('tKlr').innerHTML='--';
+    return;
+  }
+  gi('curSts').innerHTML=esc(act.status||'--');
+  gi('tMsk').innerHTML=esc(act.masuk||'--');
+  gi('tKlr').innerHTML=act.keluar==='-'?'Belum keluar':esc(act.keluar||'--');
+  if(act.keluar==='-'){gi('curBdg').innerHTML='AKTIF';gi('curBdg').className='bdg bdg-a';}
+  else{gi('curBdg').innerHTML='SELESAI';gi('curBdg').className='bdg bdg-s';}
+}
+
+/* =========================================================
+   RENDER REKOD
+========================================================= */
+function renderRecs(){
+  var el=gi('recList');
+  if(!TODAY_RECS.length){el.innerHTML='<div class="empty-msg">Tiada rekod hari ini.</div>';return;}
+  var html='';
+  for(var i=TODAY_RECS.length-1;i>=0;i--){
+    var r=TODAY_RECS[i];
+    var aktif=r.keluar==='-'&&r.masuk!=='-';
+    html+='<div class="rek-item">'
+      +'<div class="rek-row">'
+      +'<div class="rek-l"><div class="rek-s">'+(aktif?'&#129001; ':'')+esc(r.status)+'</div>'
+      +(r.maklumat?'<div class="rek-m">'+esc(r.maklumat)+'</div>':'')
+      +'</div>'
+      +'<div class="rek-r"><div class="rek-t">'+esc(r.masuk)+(aktif?'<br><span style="color:#059669;font-weight:700">AKTIF</span>':'<br>&#8594; '+esc(r.keluar))+'</div></div>'
+      +'</div></div>';
+  }
+  el.innerHTML=html;
+}
+
+/* =========================================================
+   PICKER
+========================================================= */
+function openPicker(action){
+  PEND_ACT=action;SEL_STS='';
+  for(var i=0;i<OB_IDS.length;i++){var b=gi(OB_IDS[i]);if(b)b.className='opt-btn';}
+  gi('xtraDiv').className='xtra';
+  gi('xtraInp').value='';
+  gi('pickerTtl').innerHTML=action==='masuk'?'&#9989; PILIH STATUS (PUNCH MASUK)':'&#128260; KEMASKINI STATUS';
+  gi('pickerCard').style.display='block';
+  gi('pickerCard').scrollIntoView();
+}
+
+function closePicker(){
+  gi('pickerCard').style.display='none';
+}
+
+function selSts(val){
+  SEL_STS=val;
+  var idx=STS_KEYS.indexOf(val);
+  for(var i=0;i<OB_IDS.length;i++){
+    var b=gi(OB_IDS[i]);
+    if(b)b.className='opt-btn'+(i===idx?' on':'');
+  }
+  var needX=NEED_XTRA.indexOf(val)>-1;
+  gi('xtraDiv').className='xtra'+(needX?' show':'');
+  if(!needX)gi('xtraInp').value='';
+}
+
+/* =========================================================
+   CONFIRM
+========================================================= */
+function doConfirm(){
+  if(!SEL_STS){toast('Sila pilih status dahulu.','warning');return;}
+  var needX=NEED_XTRA.indexOf(SEL_STS)>-1;
+  if(needX&&!gi('xtraInp').value.replace(/^\s+|\s+$/g,'')){
+    toast('Sila isi maklumat tambahan.','warning');return;
+  }
+  closePicker();
+  if(PEND_ACT==='masuk')doPunchMasuk();
+  else doStatusOnly();
+}
+
+/* =========================================================
+   PUNCH MASUK
+========================================================= */
+function doPunchMasuk(){
+  showLd('Mendapatkan GPS...');
+  getGPS(function(coords,maps){
+    var extra=gi('xtraInp').value.replace(/^\s+|\s+$/g,'');
+    apiCall({
+      action:'add',nama:CUR_USER.nama,jawatan:CUR_USER.jawatan,
+      ic:CUR_USER.ic,bahagian:CUR_USER.bahagian,
+      status:SEL_STS,maklumat:extra,
+      masuk:nowTime(),keluar:'-',
+      lokasi:coords,googleMaps:maps||'',tarikh:nowDate()
+    },
+    function(res){
+      hideLd();
+      if(res&&res.ok){toast('Punch Masuk berjaya! Status: '+SEL_STS,'success');loadToday();}
+      else toast('Gagal simpan.','error');
+    },
+    function(e){hideLd();toast('Gagal: '+e,'error');}
+    );
+  });
+}
+
+/* =========================================================
+   PUNCH KELUAR
+========================================================= */
+function doPunchKeluar(){
+  var act=null;
+  for(var i=TODAY_RECS.length-1;i>=0;i--){
+    if(TODAY_RECS[i].keluar==='-'&&TODAY_RECS[i].masuk!=='-'){act=TODAY_RECS[i];break;}
+  }
+  if(!act){toast('Tiada rekod aktif untuk Punch Keluar.','warning');return;}
+  showLd('Menyimpan Punch Keluar...');
+  apiCall({action:'update',id:act.id,keluar:nowTime()},
+    function(res){
+      hideLd();
+      if(res&&res.ok){toast('Punch Keluar berjaya!','success');loadToday();}
+      else toast('Gagal kemaskini.','error');
+    },
+    function(e){hideLd();toast('Gagal: '+e,'error');}
+  );
+}
+
+/* =========================================================
+   STATUS ONLY
+========================================================= */
+function doStatusOnly(){
+  if(SEL_STS==='BDR'){toast('Status BDR perlu Punch Masuk.','warning');return;}
+  showLd('Menyimpan status...');
+  var extra=gi('xtraInp').value.replace(/^\s+|\s+$/g,'');
+  apiCall({
+    action:'add',nama:CUR_USER.nama,jawatan:CUR_USER.jawatan,
+    ic:CUR_USER.ic,bahagian:CUR_USER.bahagian,
+    status:SEL_STS,maklumat:extra,
+    masuk:'-',keluar:'-',lokasi:'-',googleMaps:'',tarikh:nowDate()
+  },
+  function(res){
+    hideLd();
+    if(res&&res.ok){toast('Status '+SEL_STS+' dikemaskini!','success');loadToday();}
+    else toast('Gagal simpan.','error');
+  },
+  function(e){hideLd();toast('Gagal: '+e,'error');}
+  );
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+if(API_URL&&CUR_USER){enterApp();}
+else{showSetup();}
+
+window.addEventListener('offline',function(){toast('Anda OFFLINE.','warning',6000);});
+window.addEventListener('online',function(){toast('Sambungan pulih.','success');});
+</script>
+</body>
+</html>
