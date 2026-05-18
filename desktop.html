@@ -272,33 +272,41 @@ tbody tr:hover{background:#f8fafc}
 
   <div class="wrap">
 
-    <!-- DASHBOARD BAHAGIAN -->
+    <!-- DASHBOARD UTAMA HARIAN -->
     <section class="panel">
-      <div class="ptitle"><span class="pt-ico">🏛️</span> Dashboard Utama Bahagian
+      <div class="ptitle"><span class="pt-ico">🏛️</span> Dashboard Status Harian Kakitangan
         <span style="margin-left:auto;font-size:.72rem;font-weight:600;color:#64748b" id="lastSync">--</span>
       </div>
-      <div id="deptDash"></div>
-      <div class="btn-row" style="margin-top:14px">
-        <button class="btn b-refresh" id="btnRefresh">🔄 Refresh Data</button>
+      <!-- DATE SELECTOR -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <label style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748b;white-space:nowrap">Pilih Tarikh:</label>
+        <input type="date" id="dashDatePicker" style="padding:8px 12px;border:2px solid #dbeafe;border-radius:9px;font-family:inherit;font-size:.88rem;color:#334155;background:#f8fafc;outline:none;cursor:pointer">
+        <button class="btn" style="background:#dbeafe;color:#1e40af;flex:none;padding:8px 16px;font-size:.82rem" id="btnDashToday">📅 Hari Ini</button>
+        <span id="dashDateLabel" style="font-size:.82rem;font-weight:700;color:#1e40af;background:#dbeafe;padding:6px 14px;border-radius:7px"></span>
+        <button class="btn b-refresh" style="margin-left:auto;flex:none;padding:9px 18px" id="btnRefresh">🔄 Refresh Data</button>
       </div>
+      <!-- DAILY SUMMARY STRIP -->
+      <div id="dailySummaryStrip" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+      <!-- DEPT CARDS -->
+      <div id="deptDash"></div>
     </section>
 
-    <!-- ANALITIK HARIAN -->
+    <!-- ANALITIK KUMULATIF -->
     <section class="panel">
-      <div class="ptitle"><span class="pt-ico">📊</span> Analitik &amp; Laporan</div>
+      <div class="ptitle"><span class="pt-ico">📊</span> Analitik &amp; Laporan Kumulatif</div>
 
       <!-- FILTER -->
       <div class="filter-bar">
         <div class="field">
           <label>Jenis Paparan</label>
           <select id="viewType">
-            <option value="daily">Harian (Pilih Tarikh)</option>
             <option value="week">Minggu Ini</option>
             <option value="month">Bulan Ini</option>
+            <option value="custom">📅 Harian (Pilih Tarikh)</option>
             <option value="all">Semua Rekod</option>
           </select>
         </div>
-        <div class="field" id="datePickerWrap">
+        <div class="field" id="datePickerWrap" style="display:none">
           <label>Pilih Tarikh</label>
           <input type="date" id="datePicker">
         </div>
@@ -510,15 +518,42 @@ function enterApp(){
   ge('setupScreen').style.display='none';
   ge('appScreen').style.display='block';
   ge('hdrU').textContent='🖥️ '+adminName;
-  // Set default date to today
   var td=new Date();
-  ge('datePicker').value=td.getFullYear()+'-'+pad(td.getMonth()+1)+'-'+pad(td.getDate());
+  var todayVal=td.getFullYear()+'-'+pad(td.getMonth()+1)+'-'+pad(td.getDate());
+  // Init dashboard date picker to today
+  ge('dashDatePicker').value=todayVal;
+  updateDashDateLabel(td);
+  // Analitik default: minggu ini (no single date picker shown)
+  ge('datePickerWrap').style.display='none';
+  ge('viewType').value='week';
   loadAll();
 }
 
+function updateDashDateLabel(d){
+  var days=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
+  var ms=['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
+  ge('dashDateLabel').textContent=days[d.getDay()]+', '+d.getDate()+' '+ms[d.getMonth()]+' '+d.getFullYear();
+}
+
+ge('dashDatePicker').onchange=function(){
+  var sp=this.value.split('-');
+  if(sp.length===3){
+    var d=new Date(parseInt(sp[0]),parseInt(sp[1])-1,parseInt(sp[2]));
+    updateDashDateLabel(d);
+    renderDash(allRecords);
+  }
+};
+
+ge('btnDashToday').onclick=function(){
+  var td=new Date();
+  ge('dashDatePicker').value=td.getFullYear()+'-'+pad(td.getMonth()+1)+'-'+pad(td.getDate());
+  updateDashDateLabel(td);
+  renderDash(allRecords);
+};
+
 /* ── DATE FILTER VISIBILITY ── */
 ge('viewType').onchange=function(){
-  ge('datePickerWrap').style.display=this.value==='daily'?'flex':'none';
+  ge('datePickerWrap').style.display=this.value==='custom'?'flex':'none';
 };
 
 /* ── LOAD ALL DATA ── */
@@ -550,7 +585,7 @@ function parseDate(s){
   return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));
 }
 
-/* ── APPLY FILTER ── */
+/* ── APPLY FILTER (Analitik Kumulatif) ── */
 function applyFilter(){
   var viewType=ge('viewType').value;
   var deptF=ge('deptFilter').value;
@@ -560,13 +595,11 @@ function applyFilter(){
 
   for(var i=0;i<allRecords.length;i++){
     var r=allRecords[i];
-
-    // Date filter
     var rDate=parseDate(r.tarikh);
     var pass=true;
 
-    if(viewType==='daily'){
-      var sel=ge('datePicker').value; // yyyy-mm-dd
+    if(viewType==='custom'){
+      var sel=ge('datePicker').value;
       if(sel){
         var sp=sel.split('-');
         var selD=new Date(parseInt(sp[0]),parseInt(sp[1])-1,parseInt(sp[2]));
@@ -575,24 +608,23 @@ function applyFilter(){
     } else if(viewType==='week'){
       if(!rDate)pass=false;
       else{
-        var diff=Math.floor((now-rDate)/(1000*60*60*24));
-        if(diff<0||diff>6)pass=false;
+        // Monday to Sunday of current week
+        var dayOfWeek=now.getDay()===0?6:now.getDay()-1;
+        var weekStart=new Date(now);weekStart.setDate(now.getDate()-dayOfWeek);weekStart.setHours(0,0,0,0);
+        var weekEnd=new Date(weekStart);weekEnd.setDate(weekStart.getDate()+6);weekEnd.setHours(23,59,59,999);
+        if(rDate<weekStart||rDate>weekEnd)pass=false;
       }
     } else if(viewType==='month'){
       if(!rDate)pass=false;
       else if(rDate.getMonth()!==now.getMonth()||rDate.getFullYear()!==now.getFullYear())pass=false;
     }
 
-    // Dept filter
     if(deptF&&pass){
       if(!r.bahagian||r.bahagian.indexOf(deptF)===-1)pass=false;
     }
-
-    // Status filter
     if(stsF&&pass){
       if(r.status!==stsF)pass=false;
     }
-
     if(pass)result.push(r);
   }
 
@@ -605,10 +637,8 @@ function applyFilter(){
 
 ge('btnFilter').onclick=applyFilter;
 ge('btnReset').onclick=function(){
-  ge('viewType').value='daily';
-  ge('datePickerWrap').style.display='flex';
-  var td=new Date();
-  ge('datePicker').value=td.getFullYear()+'-'+pad(td.getMonth()+1)+'-'+pad(td.getDate());
+  ge('viewType').value='week';
+  ge('datePickerWrap').style.display='none';
   ge('deptFilter').value='';
   ge('stsFilter').value='';
   applyFilter();
@@ -674,28 +704,97 @@ function renderRecs(data){
   tb.innerHTML=html;
 }
 
-/* ── DASHBOARD ── */
+/* ── DASHBOARD (HARIAN) ── */
+function getDashDate(){
+  var val=ge('dashDatePicker').value;
+  if(!val)return new Date();
+  var sp=val.split('-');
+  return new Date(parseInt(sp[0]),parseInt(sp[1])-1,parseInt(sp[2]));
+}
+
 function renderDash(data){
   var wrap=ge('deptDash');if(!wrap)return;
+  var selDate=getDashDate();
+
+  // Filter by selected date
+  var dayData=[];
+  for(var i=0;i<data.length;i++){
+    var rDate=parseDate(data[i].tarikh);
+    if(rDate&&rDate.toDateString()===selDate.toDateString())dayData.push(data[i]);
+  }
+
+  // Daily summary strip
+  var strip=ge('dailySummaryStrip');
+  if(strip){
+    var sc={};for(var s=0;s<STS.length;s++)sc[STS[s].k]=0;
+    for(var i=0;i<dayData.length;i++){var st=dayData[i].status;if(sc[st]!==undefined)sc[st]++;else sc['Lain-Lain']++;}
+    var sHtml='<div style="flex-shrink:0;padding:9px 14px;border-radius:9px;background:#0f2744;color:#fff;text-align:center;min-width:80px"><div style="font-size:.6rem;font-weight:700;opacity:.7;text-transform:uppercase;margin-bottom:3px">Jumlah</div><div style="font-size:1.5rem;font-weight:900">'+dayData.length+'</div></div>';
+    for(var s=0;s<STS.length;s++){
+      var si=STS[s];
+      sHtml+='<div style="flex-shrink:0;padding:9px 14px;border-radius:9px;text-align:center;min-width:80px" class="'+si.c+'"><div style="font-size:.6rem;font-weight:700;opacity:.7;text-transform:uppercase;margin-bottom:3px">'+si.i+' '+esc(si.l)+'</div><div style="font-size:1.5rem;font-weight:900">'+sc[si.k]+'</div></div>';
+    }
+    strip.innerHTML=sHtml;
+  }
+
+  // Per-dept breakdown
   var html='';
   for(var d=0;d<DEPTS.length;d++){
     var dept=DEPTS[d];
     var dr=[];
-    for(var i=0;i<data.length;i++){if(data[i].bahagian&&data[i].bahagian.indexOf(dept.m)>-1)dr.push(data[i]);}
+    for(var i=0;i<dayData.length;i++){if(dayData[i].bahagian&&dayData[i].bahagian.indexOf(dept.m)>-1)dr.push(dayData[i]);}
     html+='<div class="dept-blk"><div class="dept-hdr '+dept.css+'">🏛️ '+esc(dept.label)
-      +'<span class="dept-badge">'+esc(dept.short)+' &bull; '+dr.length+' rekod</span></div><div class="sc-row">';
+      +'<span class="dept-badge">'+esc(dept.short)+' &bull; '+dr.length+' orang</span></div><div class="sc-row">';
     for(var s=0;s<STS.length;s++){
       var st=STS[s];
       var cnt=0;
       for(var r=0;r<dr.length;r++){if(dr[r].status===st.k)cnt++;}
-      html+='<div class="sc '+st.c+'" onclick="showStaff(\''+esc(dept.label)+'\',\''+esc(st.k)+'\',\''+dept.m+'\')">'
+      html+='<div class="sc '+st.c+'" onclick="showStaffDaily(\''+esc(dept.label)+'\',\''+esc(st.k)+'\',\''+dept.m+'\')">'
         +'<div class="sc-lbl">'+st.i+' '+esc(st.l)+'</div>'
         +'<div class="sc-num">'+cnt+'</div><div class="sc-tip">klik lihat</div></div>';
     }
     html+='</div></div>';
   }
+  if(!html)html='<div style="text-align:center;padding:32px;color:#94a3b8;font-style:italic">Tiada rekod untuk tarikh ini.</div>';
   wrap.innerHTML=html;
   renderRecs(allRecords);
+}
+
+/* ── SHOW STAFF (DAILY DASHBOARD) ── */
+function showStaffDaily(deptLabel,statusKey,deptMatch){
+  var selDate=getDashDate();
+  var list=[];
+  for(var i=0;i<allRecords.length;i++){
+    var r=allRecords[i];
+    var rDate=parseDate(r.tarikh);
+    if(r.bahagian&&r.bahagian.indexOf(deptMatch)>-1&&r.status===statusKey&&rDate&&rDate.toDateString()===selDate.toDateString())list.push(r);
+  }
+  var si=null;
+  for(var s=0;s<STS.length;s++){if(STS[s].k===statusKey){si=STS[s];break;}}
+  si=si||{i:'📌'};
+  var body='<p style="font-size:.78rem;color:#64748b;margin-bottom:12px">Jumlah: <strong>'+list.length+'</strong> orang pada tarikh ini</p>';
+  if(!list.length){
+    body+='<div class="s-empty">Tiada pegawai dengan status ini pada tarikh ini.</div>';
+  }else{
+    body+='<div class="slist">';
+    for(var i=0;i<list.length;i++){
+      var r=list[i];
+      var aktif=r.keluar==='-'&&r.masuk!=='-';
+      body+='<div class="si2">'
+        +'<div class="sico">'+si.i+'</div>'
+        +'<div class="sinf">'
+        +'<div class="sn">'+esc(r.nama)+'</div>'
+        +'<div class="sm">'+esc(r.jawatan)+' &bull; '+esc(r.tarikh)+'</div>'
+        +(r.maklumat?'<div class="sm">&#128221; '+esc(r.maklumat)+'</div>':'')
+        +'<div>'+mapsBtn(r)+'</div>'
+        +'</div>'
+        +'<div class="st" style="color:'+(aktif?'#059669':'#64748b')+'">'
+        +(aktif?'&#129001; Masuk<br>'+esc(r.masuk):'&#9899; Selesai<br>'+esc(r.keluar))
+        +'</div>'
+        +'</div>';
+    }
+    body+='</div>';
+  }
+  showModal(si.i+' '+statusKey+' — '+deptLabel,body);
 }
 
 /* ── SHOW STAFF ── */
@@ -840,7 +939,7 @@ ge('btnPDF').onclick=function(){
       var now=new Date();
       var dt=now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear()+' '+pad(now.getHours())+':'+pad(now.getMinutes());
       var vt=ge('viewType').value;
-      var vtLabel={daily:'Harian',week:'Minggu Ini',month:'Bulan Ini',all:'Semua Rekod'}[vt]||vt;
+      var vtLabel={custom:'Harian',week:'Minggu Ini',month:'Bulan Ini',all:'Semua Rekod'}[vt]||vt;
       var sc=stsCounts(data);
       var sumP=[];var ks=Object.keys(sc);for(var i=0;i<ks.length;i++){if(sc[ks[i]])sumP.push(ks[i]+': '+sc[ks[i]]);}
       var rows='';
