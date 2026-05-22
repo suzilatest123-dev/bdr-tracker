@@ -421,10 +421,11 @@ function pad(n){return n<10?'0'+n:''+n;}
 /* ── CLOCK ── */
 function tick(){
   var d=new Date();
+  var kl=new Date(d.getTime()+8*3600000);
   var days=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
   var ms=['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Ogos','Sep','Okt','Nov','Dis'];
   var el=ge('clock');
-  if(el)el.textContent=days[d.getDay()]+', '+d.getDate()+' '+ms[d.getMonth()]+' '+d.getFullYear()+' | '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());
+  if(el)el.textContent=days[kl.getUTCDay()]+', '+kl.getUTCDate()+' '+ms[kl.getUTCMonth()]+' '+kl.getUTCFullYear()+' | '+pad(kl.getUTCHours())+':'+pad(kl.getUTCMinutes())+':'+pad(kl.getUTCSeconds());
 }
 setInterval(tick,1000);tick();
 
@@ -519,20 +520,25 @@ function enterApp(){
   ge('appScreen').style.display='block';
   ge('hdrU').textContent='🖥️ '+adminName;
   var td=new Date();
-  var todayVal=td.getFullYear()+'-'+pad(td.getMonth()+1)+'-'+pad(td.getDate());
+  var kl=new Date(td.getTime()+8*3600000);
+  var todayVal=kl.getUTCFullYear()+'-'+pad(kl.getUTCMonth()+1)+'-'+pad(kl.getUTCDate());
   // Init dashboard date picker to today
   ge('dashDatePicker').value=todayVal;
-  updateDashDateLabel(td);
+  updateDashDateLabel(kl,true);
   // Analitik default: minggu ini (no single date picker shown)
   ge('datePickerWrap').style.display='none';
   ge('viewType').value='week';
   loadAll();
 }
 
-function updateDashDateLabel(d){
+function updateDashDateLabel(d,isUTC){
   var days=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
   var ms=['Januari','Februari','Mac','April','Mei','Jun','Julai','Ogos','September','Oktober','November','Disember'];
-  ge('dashDateLabel').textContent=days[d.getDay()]+', '+d.getDate()+' '+ms[d.getMonth()]+' '+d.getFullYear();
+  if(isUTC){
+    ge('dashDateLabel').textContent=days[d.getUTCDay()]+', '+d.getUTCDate()+' '+ms[d.getUTCMonth()]+' '+d.getUTCFullYear();
+  }else{
+    ge('dashDateLabel').textContent=days[d.getDay()]+', '+d.getDate()+' '+ms[d.getMonth()]+' '+d.getFullYear();
+  }
 }
 
 ge('dashDatePicker').onchange=function(){
@@ -546,8 +552,9 @@ ge('dashDatePicker').onchange=function(){
 
 ge('btnDashToday').onclick=function(){
   var td=new Date();
-  ge('dashDatePicker').value=td.getFullYear()+'-'+pad(td.getMonth()+1)+'-'+pad(td.getDate());
-  updateDashDateLabel(td);
+  var kl=new Date(td.getTime()+8*3600000);
+  ge('dashDatePicker').value=kl.getUTCFullYear()+'-'+pad(kl.getUTCMonth()+1)+'-'+pad(kl.getUTCDate());
+  updateDashDateLabel(kl,true);
   renderDash(allRecords);
 };
 
@@ -565,7 +572,7 @@ function loadAll(){
       if(!res.ok){toast('Gagal muat data.','error');return;}
       allRecords=res.records||[];
       var sync=ge('lastSync');
-      if(sync){var d=new Date();sync.textContent='Dikemaskini: '+pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds());}
+      if(sync){var kl=new Date(new Date().getTime()+8*3600000);sync.textContent='Dikemaskini: '+pad(kl.getUTCHours())+':'+pad(kl.getUTCMinutes())+':'+pad(kl.getUTCSeconds());}
       applyFilter();
       renderDash(allRecords);
       toast('Data dimuatkan. '+allRecords.length+' rekod.','success');
@@ -590,7 +597,7 @@ function applyFilter(){
   var viewType=ge('viewType').value;
   var deptF=ge('deptFilter').value;
   var stsF=ge('stsFilter').value;
-  var now=new Date();
+  var now=new Date(new Date().getTime()+8*3600000); // KL GMT+8
   var result=[];
 
   for(var i=0;i<allRecords.length;i++){
@@ -661,21 +668,25 @@ function renderSummary(data){
 /* ── TABLE ── */
 function renderTable(data){
   if(!data.length){
-    ge('aTbl').innerHTML='<thead><tr><th colspan="11">Tiada rekod untuk paparan ini.</th></tr></thead>';
+    ge('aTbl').innerHTML='<thead><tr><th colspan="13">Tiada rekod untuk paparan ini.</th></tr></thead>';
     return;
   }
   var html='<thead><tr><th>#</th><th>Nama</th><th>Jawatan</th><th>No. IC</th>'
     +'<th>Bahagian</th><th>Status</th><th>Maklumat</th>'
-    +'<th>P.Masuk</th><th>P.Keluar</th><th>Tarikh</th><th>Rekod</th></tr></thead><tbody>';
+    +'<th>P.Masuk</th><th>P.Keluar</th><th>Tarikh</th><th>Rekod</th>'
+    +'<th>Tugasan</th><th>Pengesahan PP</th></tr></thead><tbody>';
   for(var i=0;i<data.length;i++){
     var r=data[i];
     var aktif=r.keluar==='-'&&r.masuk!=='-';
+    var isBDR=r.status==='BDR';
     html+='<tr class="'+(aktif?'row-a':'')+'">'
       +'<td>'+(i+1)+'</td><td>'+esc(r.nama)+'</td><td>'+esc(r.jawatan)+'</td><td>'+esc(r.ic)+'</td>'
       +'<td style="font-size:.76rem">'+esc(r.bahagian)+'</td><td><strong>'+esc(r.status)+'</strong></td>'
       +'<td style="font-size:.76rem">'+(esc(r.maklumat)||'—')+'</td>'
       +'<td>'+esc(r.masuk)+'</td><td>'+esc(r.keluar)+'</td><td>'+esc(r.tarikh)+'</td>'
       +'<td><span class="badge '+(aktif?'b-a':'b-s')+'">'+(aktif?'AKTIF':'SELESAI')+'</span></td>'
+      +'<td style="font-size:.76rem">'+(isBDR?(esc(r.tugasan)||'—'):'<span style="color:#cbd5e1">—</span>')+'</td>'
+      +'<td style="font-size:.76rem">'+(isBDR?(esc(r.pengesahan)||'—'):'<span style="color:#cbd5e1">—</span>')+'</td>'
       +'</tr>';
   }
   ge('aTbl').innerHTML=html+'</tbody>';
@@ -936,21 +947,23 @@ ge('btnPDF').onclick=function(){
   showLoad('Menjana PDF...');
   setTimeout(function(){
     try{
-      var now=new Date();
-      var dt=now.getDate()+'/'+(now.getMonth()+1)+'/'+now.getFullYear()+' '+pad(now.getHours())+':'+pad(now.getMinutes());
+      var nowKL=new Date(new Date().getTime()+8*3600000);
+      var dt=nowKL.getUTCDate()+'/'+(nowKL.getUTCMonth()+1)+'/'+nowKL.getUTCFullYear()+' '+pad(nowKL.getUTCHours())+':'+pad(nowKL.getUTCMinutes());
       var vt=ge('viewType').value;
       var vtLabel={custom:'Harian',week:'Minggu Ini',month:'Bulan Ini',all:'Semua Rekod'}[vt]||vt;
       var sc=stsCounts(data);
       var sumP=[];var ks=Object.keys(sc);for(var i=0;i<ks.length;i++){if(sc[ks[i]])sumP.push(ks[i]+': '+sc[ks[i]]);}
       var rows='';
       for(var i=0;i<data.length;i++){
-        var r=data[i];var aktif=r.keluar==='-'&&r.masuk!=='-';
+        var r=data[i];var aktif=r.keluar==='-'&&r.masuk!=='-';var isBDR=r.status==='BDR';
         rows+='<tr style="background:'+(i%2===0?'#f8fafc':'#fff')+'">'
           +'<td>'+(i+1)+'</td><td>'+esc(r.nama)+'</td><td>'+esc(r.jawatan)+'</td>'
           +'<td>'+esc(r.ic)+'</td><td>'+esc((r.bahagian||'').replace(/\(.*?\)/g,'').trim())+'</td>'
           +'<td><b>'+esc(r.status)+'</b></td><td>'+(esc(r.maklumat)||'—')+'</td>'
           +'<td>'+esc(r.masuk)+'</td><td>'+esc(r.keluar)+'</td><td>'+esc(r.tarikh)+'</td>'
           +'<td style="color:'+(aktif?'#059669':'#64748b')+';font-weight:800">'+(aktif?'AKTIF':'SELESAI')+'</td>'
+          +'<td>'+(isBDR?(esc(r.tugasan)||'—'):'')+'</td>'
+          +'<td>'+(isBDR?(esc(r.pengesahan)||'—'):'')+'</td>'
           +'</tr>';
       }
       var html='<!DOCTYPE html><html><head>'
@@ -971,6 +984,7 @@ ge('btnPDF').onclick=function(){
         +'<div class="sum">'+esc(sumP.join('  |  '))+'</div>'
         +'<table><thead><tr><th>#</th><th>Nama</th><th>Jawatan</th><th>No. IC</th><th>Bahagian</th>'
         +'<th>Status</th><th>Maklumat</th><th>P.Masuk</th><th>P.Keluar</th><th>Tarikh</th><th>Rekod</th>'
+        +'<th>Tugasan</th><th>Pengesahan PP</th>'
         +'</tr></thead><tbody>'+rows+'</tbody></table>'
         +'<div class="foot">FIND-ME BDR TRACKER &bull; '+esc(dt)+'</div>'
         +'<script>setTimeout(function(){window.print();},400);<\/script>'
@@ -978,7 +992,7 @@ ge('btnPDF').onclick=function(){
       var blob=new Blob([html],{type:'text/html;charset=utf-8'});
       var url=(window.URL||window.webkitURL).createObjectURL(blob);
       var a=document.createElement('a');a.href=url;a.target='_blank';
-      a.download='FINDME_BDR_'+vtLabel+'_'+now.getFullYear()+pad(now.getMonth()+1)+pad(now.getDate())+'.html';
+      a.download='FINDME_BDR_'+vtLabel+'_'+nowKL.getUTCFullYear()+pad(nowKL.getUTCMonth()+1)+pad(nowKL.getUTCDate())+'.html';
       document.body.appendChild(a);a.click();document.body.removeChild(a);
       setTimeout(function(){(window.URL||window.webkitURL).revokeObjectURL(url);},3000);
       hideLoad();toast('PDF dijana! Buka fail → Print → Save as PDF.','success',6000);

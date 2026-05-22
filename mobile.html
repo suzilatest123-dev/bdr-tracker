@@ -292,6 +292,16 @@ table.btn-tbl td{padding:0}
         <input type="text" id="xtraInp" placeholder="Nama mesyuarat / lokasi / tajuk kursus...">
       </div>
 
+      <!-- FIELD TAMBAHAN BDR SAHAJA -->
+      <div class="xtra" id="bdrDiv">
+        <label>Tugasan</label>
+        <input type="text" id="tugasanInp" placeholder="Huraikan tugasan semasa BDR...">
+      </div>
+      <div class="xtra" id="pengesahanDiv">
+        <label>Pengesahan Penolong Pengarah</label>
+        <input type="text" id="pengesahanInp" placeholder="Nama Penolong Pengarah yang mengesahkan...">
+      </div>
+
       <input type="button" class="mbtn" value="&#9989; Sahkan" onclick="doConfirm()">
       <input type="button" class="mbtn mbtn-w" value="Batal" onclick="closePicker()" style="margin-top:6px">
     </div>
@@ -335,17 +345,23 @@ try{var _s=localStorage.getItem('bdr_user');if(_s)CUR_USER=JSON.parse(_s);}catch
 function gi(id){return document.getElementById(id);}
 function esc(s){if(s==null)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function p2(n){return n<10?'0'+n:''+n;}
-function nowTime(){var d=new Date();return p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds());}
-function nowDate(){var d=new Date();return d.getDate()+'/'+(d.getMonth()+1)+'/'+d.getFullYear();}
+function klDate(){
+  // GMT+8 Kuala Lumpur
+  var d=new Date();
+  var kl=new Date(d.getTime()+8*3600000);
+  return kl;
+}
+function nowTime(){var k=klDate();return p2(k.getUTCHours())+':'+p2(k.getUTCMinutes())+':'+p2(k.getUTCSeconds());}
+function nowDate(){var k=klDate();return k.getUTCDate()+'/'+(k.getUTCMonth()+1)+'/'+k.getUTCFullYear();}
 
 /* =========================================================
    CLOCK
 ========================================================= */
 function tickClk(){
   var el=gi('clkEl');if(!el)return;
-  var d=new Date();
+  var kl=klDate();
   var days=['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
-  el.innerHTML=days[d.getDay()]+' '+p2(d.getHours())+':'+p2(d.getMinutes())+':'+p2(d.getSeconds());
+  el.innerHTML=days[kl.getUTCDay()]+' '+p2(kl.getUTCHours())+':'+p2(kl.getUTCMinutes())+':'+p2(kl.getUTCSeconds());
 }
 setInterval(tickClk,1000);tickClk();
 
@@ -579,6 +595,10 @@ function openPicker(action){
   for(var i=0;i<OB_IDS.length;i++){var b=gi(OB_IDS[i]);if(b)b.className='opt-btn';}
   gi('xtraDiv').className='xtra';
   gi('xtraInp').value='';
+  gi('bdrDiv').className='xtra';
+  gi('pengesahanDiv').className='xtra';
+  gi('tugasanInp').value='';
+  gi('pengesahanInp').value='';
   gi('pickerTtl').innerHTML=action==='masuk'?'&#9989; PILIH STATUS (PUNCH MASUK)':'&#128260; KEMASKINI STATUS';
   gi('pickerCard').style.display='block';
   gi('pickerCard').scrollIntoView();
@@ -598,6 +618,11 @@ function selSts(val){
   var needX=NEED_XTRA.indexOf(val)>-1;
   gi('xtraDiv').className='xtra'+(needX?' show':'');
   if(!needX)gi('xtraInp').value='';
+  // BDR-specific fields
+  var isBDR=(val==='BDR');
+  gi('bdrDiv').className='xtra'+(isBDR?' show':'');
+  gi('pengesahanDiv').className='xtra'+(isBDR?' show':'');
+  if(!isBDR){gi('tugasanInp').value='';gi('pengesahanInp').value='';}
 }
 
 /* =========================================================
@@ -621,10 +646,13 @@ function doPunchMasuk(){
   showLd('Mendapatkan GPS...');
   getGPS(function(coords,maps){
     var extra=gi('xtraInp').value.replace(/^\s+|\s+$/g,'');
+    var tugasan=gi('tugasanInp').value.replace(/^\s+|\s+$/g,'');
+    var pengesahan=gi('pengesahanInp').value.replace(/^\s+|\s+$/g,'');
     apiCall({
       action:'add',nama:CUR_USER.nama,jawatan:CUR_USER.jawatan,
       ic:CUR_USER.ic,bahagian:CUR_USER.bahagian,
       status:SEL_STS,maklumat:extra,
+      tugasan:tugasan,pengesahan:pengesahan,
       masuk:nowTime(),keluar:'-',
       lokasi:coords,googleMaps:maps||'',tarikh:nowDate()
     },
@@ -665,10 +693,13 @@ function doStatusOnly(){
   if(SEL_STS==='BDR'){toast('Status BDR perlu Punch Masuk.','warning');return;}
   showLd('Menyimpan status...');
   var extra=gi('xtraInp').value.replace(/^\s+|\s+$/g,'');
+  var tugasan=gi('tugasanInp').value.replace(/^\s+|\s+$/g,'');
+  var pengesahan=gi('pengesahanInp').value.replace(/^\s+|\s+$/g,'');
   apiCall({
     action:'add',nama:CUR_USER.nama,jawatan:CUR_USER.jawatan,
     ic:CUR_USER.ic,bahagian:CUR_USER.bahagian,
     status:SEL_STS,maklumat:extra,
+    tugasan:tugasan,pengesahan:pengesahan,
     masuk:'-',keluar:'-',lokasi:'-',googleMaps:'',tarikh:nowDate()
   },
   function(res){
