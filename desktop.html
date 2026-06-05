@@ -303,6 +303,7 @@ tbody tr:hover{background:#f8fafc}
             <option value="week">Minggu Ini</option>
             <option value="month">Bulan Ini</option>
             <option value="custom">📅 Harian (Pilih Tarikh)</option>
+            <option value="range">📅 Julat Tarikh (Mula — Akhir)</option>
             <option value="all">Semua Rekod</option>
           </select>
         </div>
@@ -310,15 +311,29 @@ tbody tr:hover{background:#f8fafc}
           <label>Pilih Tarikh</label>
           <input type="date" id="datePicker">
         </div>
+        <div class="field" id="dateRangeWrap" style="display:none">
+          <label>Tarikh Mula</label>
+          <input type="date" id="dateFrom">
+        </div>
+        <div class="field" id="dateRangeWrap2" style="display:none">
+          <label>Tarikh Akhir</label>
+          <input type="date" id="dateTo">
+        </div>
         <div class="field">
-          <label>Bahagian</label>
-          <select id="deptFilter">
+          <label>Bahagian / Kakitangan</label>
+          <select id="deptFilter" onchange="toggleStaffSearch(this.value)">
             <option value="">Semua Bahagian</option>
             <option value="BRP">BRP</option>
             <option value="BPK">BPK</option>
             <option value="BPP">BPP</option>
             <option value="BP&K">BP&amp;K</option>
+            <option value="__KAKITANGAN__">👤 Cari Kakitangan (Nama)</option>
           </select>
+        </div>
+        <div class="field" id="staffSearchWrap" style="display:none">
+          <label>Nama Kakitangan</label>
+          <input type="text" id="staffSearchInp" placeholder="Taip nama kakitangan..." autocomplete="off" style="padding:10px 13px;border:2px solid #e2e8f0;border-radius:9px;font-family:inherit;font-size:.9rem;color:#334155;background:#f8fafc;outline:none;" oninput="showStaffSuggestions(this.value)" onfocus="showStaffSuggestions(this.value)">
+          <div id="staffSuggestBox" style="display:none;position:absolute;z-index:500;background:#fff;border:2px solid #dbeafe;border-radius:9px;box-shadow:0 4px 20px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;min-width:220px;margin-top:2px"></div>
         </div>
         <div class="field">
           <label>Status</label>
@@ -561,6 +576,9 @@ ge('btnDashToday').onclick=function(){
 /* ── DATE FILTER VISIBILITY ── */
 ge('viewType').onchange=function(){
   ge('datePickerWrap').style.display=this.value==='custom'?'flex':'none';
+  var isRange=this.value==='range';
+  ge('dateRangeWrap').style.display=isRange?'flex':'none';
+  ge('dateRangeWrap2').style.display=isRange?'flex':'none';
 };
 
 /* ── LOAD ALL DATA ── */
@@ -592,11 +610,56 @@ function parseDate(s){
   return new Date(parseInt(p[2]),parseInt(p[1])-1,parseInt(p[0]));
 }
 
+/* ── KAKITANGAN SEARCH HELPERS ── */
+function toggleStaffSearch(val){
+  var wrap=ge('staffSearchWrap');
+  if(val==='__KAKITANGAN__'){
+    wrap.style.display='flex';
+    wrap.style.flexDirection='column';
+    wrap.style.position='relative';
+    setTimeout(function(){ge('staffSearchInp').focus();},50);
+  }else{
+    wrap.style.display='none';
+    ge('staffSearchInp').value='';
+    ge('staffSuggestBox').style.display='none';
+  }
+}
+
+function showStaffSuggestions(q){
+  var box=ge('staffSuggestBox');
+  var val=norm(q);
+  if(!val){box.style.display='none';return;}
+  var seen={};var matches=[];
+  for(var i=0;i<allRecords.length;i++){
+    var n=allRecords[i].nama;
+    if(n&&seen[n]===undefined&&norm(n).indexOf(val)>-1){seen[n]=1;matches.push(n);}
+    if(matches.length>=8)break;
+  }
+  if(!matches.length){box.style.display='none';return;}
+  var html='';
+  for(var i=0;i<matches.length;i++){
+    html+='<div style="padding:9px 14px;cursor:pointer;font-size:.86rem;color:#334155;border-bottom:1px solid #f1f5f9;" '
+      +'onmousedown="selectStaff(\''+esc(matches[i]).replace(/'/g,'&#39;')+'\')">&#128100; '+esc(matches[i])+'</div>';
+  }
+  box.innerHTML=html;box.style.display='block';
+}
+
+function selectStaff(name){
+  ge('staffSearchInp').value=name;
+  ge('staffSuggestBox').style.display='none';
+}
+
+document.addEventListener('click',function(e){
+  var wrap=ge('staffSearchWrap');
+  if(wrap&&!wrap.contains(e.target)){var box=ge('staffSuggestBox');if(box)box.style.display='none';}
+});
+
 /* ── APPLY FILTER (Analitik Kumulatif) ── */
 function applyFilter(){
   var viewType=ge('viewType').value;
   var deptF=ge('deptFilter').value;
   var stsF=ge('stsFilter').value;
+  var staffF=deptF==='__KAKITANGAN__'?norm(ge('staffSearchInp').value):'';
   var now=new Date(new Date().getTime()+8*3600000); // KL GMT+8
   var result=[];
 
@@ -612,6 +675,15 @@ function applyFilter(){
         var selD=new Date(parseInt(sp[0]),parseInt(sp[1])-1,parseInt(sp[2]));
         if(!rDate||rDate.toDateString()!==selD.toDateString())pass=false;
       }
+    } else if(viewType==='range'){
+      var fromV=ge('dateFrom').value;
+      var toV=ge('dateTo').value;
+      if(fromV||toV){
+        if(!rDate){pass=false;}else{
+          if(fromV){var fp=fromV.split('-');var fromD=new Date(parseInt(fp[0]),parseInt(fp[1])-1,parseInt(fp[2]));fromD.setHours(0,0,0,0);if(rDate<fromD)pass=false;}
+          if(toV&&pass){var tp=toV.split('-');var toD=new Date(parseInt(tp[0]),parseInt(tp[1])-1,parseInt(tp[2]));toD.setHours(23,59,59,999);if(rDate>toD)pass=false;}
+        }
+      }
     } else if(viewType==='week'){
       if(!rDate)pass=false;
       else{
@@ -626,8 +698,11 @@ function applyFilter(){
       else if(rDate.getMonth()!==now.getMonth()||rDate.getFullYear()!==now.getFullYear())pass=false;
     }
 
-    if(deptF&&pass){
+    if(deptF&&deptF!=='__KAKITANGAN__'&&pass){
       if(!r.bahagian||r.bahagian.indexOf(deptF)===-1)pass=false;
+    }
+    if(staffF&&pass){
+      if(!r.nama||norm(r.nama).indexOf(staffF)===-1)pass=false;
     }
     if(stsF&&pass){
       if(r.status!==stsF)pass=false;
@@ -646,8 +721,15 @@ ge('btnFilter').onclick=applyFilter;
 ge('btnReset').onclick=function(){
   ge('viewType').value='week';
   ge('datePickerWrap').style.display='none';
+  ge('dateRangeWrap').style.display='none';
+  ge('dateRangeWrap2').style.display='none';
+  ge('dateFrom').value='';
+  ge('dateTo').value='';
   ge('deptFilter').value='';
   ge('stsFilter').value='';
+  ge('staffSearchWrap').style.display='none';
+  ge('staffSearchInp').value='';
+  ge('staffSuggestBox').style.display='none';
   applyFilter();
 };
 
@@ -950,7 +1032,27 @@ ge('btnPDF').onclick=function(){
       var nowKL=new Date(new Date().getTime()+8*3600000);
       var dt=nowKL.getUTCDate()+'/'+(nowKL.getUTCMonth()+1)+'/'+nowKL.getUTCFullYear()+' '+pad(nowKL.getUTCHours())+':'+pad(nowKL.getUTCMinutes());
       var vt=ge('viewType').value;
-      var vtLabel={custom:'Harian',week:'Minggu Ini',month:'Bulan Ini',all:'Semua Rekod'}[vt]||vt;
+      var vtLabelMap={custom:'Harian',week:'Minggu Ini',month:'Bulan Ini',range:'Julat Tarikh',all:'Semua Rekod'};
+      var vtLabel=vtLabelMap[vt]||vt;
+      // Date range label for title
+      var vtDateStr='';
+      if(vt==='custom'){var dp=ge('datePicker').value;if(dp){var dp2=dp.split('-');vtDateStr=' ('+dp2[2]+'/'+dp2[1]+'/'+dp2[0]+')';}}
+      else if(vt==='range'){
+        var dfv=ge('dateFrom').value;var dtv=ge('dateTo').value;
+        var dfs='',dts='';
+        if(dfv){var a=dfv.split('-');dfs=a[2]+'/'+a[1]+'/'+a[0];}
+        if(dtv){var b=dtv.split('-');dts=b[2]+'/'+b[1]+'/'+b[0];}
+        if(dfs||dts)vtDateStr=' ('+dfs+' — '+dts+')';
+      }
+      // Status label
+      var stsV=ge('stsFilter').value;
+      var stsLabel=stsV?(' | STATUS: '+stsV):'';
+      // Dept/staff label
+      var deptV=ge('deptFilter').value;
+      var deptLabel='';
+      if(deptV&&deptV!=='__KAKITANGAN__')deptLabel=' | BAHAGIAN: '+deptV;
+      else if(deptV==='__KAKITANGAN__'){var sn=ge('staffSearchInp').value.trim();if(sn)deptLabel=' | KAKITANGAN: '+sn;}
+      var pdfTitle='LAPORAN '+vtLabel.toUpperCase()+vtDateStr+stsLabel+deptLabel;
       var sc=stsCounts(data);
       var sumP=[];var ks=Object.keys(sc);for(var i=0;i<ks.length;i++){if(sc[ks[i]])sumP.push(ks[i]+': '+sc[ks[i]]);}
       var rows='';
@@ -979,8 +1081,8 @@ ge('btnPDF').onclick=function(){
         +'.foot{margin-top:14px;font-size:7pt;color:#94a3b8;text-align:center}'
         +'@media print{@page{size:A4 landscape;margin:10mm}}'
         +'</style></head><body>'
-        +'<h1>📍 FIND-ME BDR TRACKER — LAPORAN '+esc(vtLabel.toUpperCase())+'</h1>'
-        +'<div class="meta">Penjana: <b>'+esc(adminName)+'</b> &nbsp;|&nbsp; Tarikh: <b>'+esc(dt)+'</b> &nbsp;|&nbsp; Jumlah: <b>'+data.length+'</b> rekod &nbsp;|&nbsp; Paparan: <b>'+esc(vtLabel)+'</b></div>'
+        +'<h1>📍 FIND-ME BDR TRACKER — '+esc(pdfTitle)+'</h1>'
+        +'<div class="meta">Penjana: <b>'+esc(adminName)+'</b> &nbsp;|&nbsp; Tarikh: <b>'+esc(dt)+'</b> &nbsp;|&nbsp; Jumlah: <b>'+data.length+'</b> rekod &nbsp;|&nbsp; Paparan: <b>'+esc(vtLabel+(vtDateStr||''))+'</b>'+(stsLabel?'&nbsp;|&nbsp; Status: <b>'+esc(stsV)+'</b>':'')+(deptLabel?'&nbsp;|&nbsp;'+esc(deptLabel.replace(' | ','')):'')+'</div>'
         +'<div class="sum">'+esc(sumP.join('  |  '))+'</div>'
         +'<table><thead><tr><th>#</th><th>Nama</th><th>Jawatan</th><th>No. IC</th><th>Bahagian</th>'
         +'<th>Status</th><th>Maklumat</th><th>P.Masuk</th><th>P.Keluar</th><th>Tarikh</th><th>Rekod</th>'
@@ -992,7 +1094,7 @@ ge('btnPDF').onclick=function(){
       var blob=new Blob([html],{type:'text/html;charset=utf-8'});
       var url=(window.URL||window.webkitURL).createObjectURL(blob);
       var a=document.createElement('a');a.href=url;a.target='_blank';
-      a.download='FINDME_BDR_'+vtLabel+'_'+nowKL.getUTCFullYear()+pad(nowKL.getUTCMonth()+1)+pad(nowKL.getUTCDate())+'.html';
+      a.download='FINDME_BDR_'+(vtLabel+(stsV?'_'+stsV:'')).replace(/[^a-zA-Z0-9]/g,'_')+'_'+nowKL.getUTCFullYear()+pad(nowKL.getUTCMonth()+1)+pad(nowKL.getUTCDate())+'.html';
       document.body.appendChild(a);a.click();document.body.removeChild(a);
       setTimeout(function(){(window.URL||window.webkitURL).revokeObjectURL(url);},3000);
       hideLoad();toast('PDF dijana! Buka fail → Print → Save as PDF.','success',6000);
