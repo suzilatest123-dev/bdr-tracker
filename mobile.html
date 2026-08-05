@@ -130,12 +130,39 @@ table.btn-tbl td{padding:0}
 @-webkit-keyframes spin{to{-webkit-transform:rotate(360deg)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 #ld-txt{font-size:.86rem;font-weight:700;color:#0f2744}
+
+/* MODAL TUGASAN KELUAR */
+#tgModal{display:none;position:fixed;inset:0;z-index:9000;background:rgba(15,39,68,.6);align-items:flex-end;justify-content:center}
+#tgModal.open{display:flex}
+.tg-box{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:24px 18px 32px;position:relative}
+.tg-title{font-size:1rem;font-weight:800;color:#0f2744;margin-bottom:4px}
+.tg-sub{font-size:.78rem;color:#64748b;margin-bottom:14px;line-height:1.5}
+#tgEditor{width:100%;min-height:130px;border:2px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-family:Arial,sans-serif;font-size:.88rem;color:#334155;resize:none;line-height:1.7;outline:none}
+#tgEditor:focus{border-color:#1d6ef5}
+.tg-hint{font-size:.72rem;color:#94a3b8;margin:6px 0 14px}
+.tg-btns{display:flex;gap:10px}
+.tg-save{flex:2;background:#0f2744;color:#fff;border:none;border-radius:10px;padding:13px;font-weight:700;font-size:.9rem;cursor:pointer}
+.tg-skip{flex:1;background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:13px;font-weight:600;font-size:.88rem;cursor:pointer}
 </style>
 </head>
 <body>
 
 <div id="toast-box"></div>
 <div id="ld-box"><div id="ld-inner"><div class="spin"></div><div id="ld-txt">Memproses...</div></div></div>
+
+<!-- MODAL TUGASAN PUNCH KELUAR -->
+<div id="tgModal">
+  <div class="tg-box">
+    <div class="tg-title">📋 Kemaskini Tugasan BDR</div>
+    <div class="tg-sub">Sebelum punch keluar, anda boleh kemaskini senarai tugasan hari ini. Tekan Enter untuk baris baru (auto nombor).</div>
+    <textarea id="tgEditor" placeholder="1. Semak fail&#10;2. Hantar laporan&#10;..."></textarea>
+    <div class="tg-hint">💡 Tekan <strong>Enter</strong> untuk nombor baru secara automatik</div>
+    <div class="tg-btns">
+      <button class="tg-skip" id="tgSkip">Langkau</button>
+      <button class="tg-save" id="tgSave">✓ Simpan &amp; Keluar</button>
+    </div>
+  </div>
+</div>
 
 <!-- ========== SETUP PAGE ========== -->
 <div id="pg-setup" class="page show">
@@ -667,6 +694,72 @@ function doPunchMasuk(){
 }
 
 /* =========================================================
+   TUGASAN MODAL (Punch Keluar BDR)
+========================================================= */
+var _tgActRec=null;
+
+function normTugasanM(raw){
+  if(!raw)return '';
+  var lines=raw.split('\n');var out=[];var n=1;
+  for(var i=0;i<lines.length;i++){
+    var l=lines[i].replace(/^\s+|\s+$/g,'');
+    if(!l)continue;
+    l=l.replace(/^\d+[\.\)]\s*/,'');
+    if(l)out.push(n+'. '+l),n++;
+  }
+  return out.join('\n');
+}
+
+gi('tgEditor').addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    e.preventDefault();
+    var ta=this;var val=ta.value;var pos=ta.selectionStart;
+    var before=val.substring(0,pos);var after=val.substring(pos);
+    var lines=before.split('\n');var nextN=1;
+    for(var i=lines.length-1;i>=0;i--){
+      var m=lines[i].match(/^(\d+)[\.\)]/);if(m){nextN=parseInt(m[1])+1;break;}
+    }
+    var ins='\n'+nextN+'. ';
+    ta.value=before+ins+after;
+    ta.selectionStart=ta.selectionEnd=pos+ins.length;
+  }
+});
+
+function openTgModal(rec){
+  _tgActRec=rec;
+  gi('tgEditor').value=normTugasanM(rec.tugasan||'');
+  gi('tgModal').classList.add('open');
+  setTimeout(function(){gi('tgEditor').focus();},80);
+}
+function closeTgModal(){gi('tgModal').classList.remove('open');_tgActRec=null;}
+
+gi('tgSkip').onclick=function(){closeTgModal();execPunchKeluar(_tgActRec||null);_tgActRec=null;};
+gi('tgSave').onclick=function(){
+  var rec=_tgActRec;
+  var normed=normTugasanM(gi('tgEditor').value);
+  closeTgModal();
+  if(rec&&normed){
+    // save tugasan first, then punch keluar
+    showLd('Menyimpan tugasan...');
+    apiCall({action:'update',id:rec.id,tugasan:normed},
+      function(){execPunchKeluar(rec);},
+      function(){execPunchKeluar(rec);}
+    );
+  }else{
+    execPunchKeluar(rec);
+  }
+};
+
+function execPunchKeluar(act){
+  if(!act){toast('Tiada rekod aktif.','warning');return;}
+  showLd('Menyimpan Punch Keluar...');
+  apiCall({action:'update',id:act.id,keluar:nowTime()},
+    function(res){hideLd();if(res&&res.ok){toast('Punch Keluar berjaya!','success');loadToday();}else toast('Gagal kemaskini.','error');},
+    function(e){hideLd();toast('Gagal: '+e,'error');}
+  );
+}
+
+/* =========================================================
    PUNCH KELUAR
 ========================================================= */
 function doPunchKeluar(){
@@ -675,15 +768,12 @@ function doPunchKeluar(){
     if(TODAY_RECS[i].keluar==='-'&&TODAY_RECS[i].masuk!=='-'){act=TODAY_RECS[i];break;}
   }
   if(!act){toast('Tiada rekod aktif untuk Punch Keluar.','warning');return;}
-  showLd('Menyimpan Punch Keluar...');
-  apiCall({action:'update',id:act.id,keluar:nowTime()},
-    function(res){
-      hideLd();
-      if(res&&res.ok){toast('Punch Keluar berjaya!','success');loadToday();}
-      else toast('Gagal kemaskini.','error');
-    },
-    function(e){hideLd();toast('Gagal: '+e,'error');}
-  );
+  // If BDR, show tugasan modal first
+  if(act.status==='BDR'){
+    openTgModal(act);
+  }else{
+    execPunchKeluar(act);
+  }
 }
 
 /* =========================================================
